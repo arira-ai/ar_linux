@@ -1,5 +1,7 @@
-#  Linux: The Foundation of Modern Engineering
+<center>
 
+# **Linux: The Foundation of Modern Engineering**
+</center>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/linux/linux-original.svg" width="200">
