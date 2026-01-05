@@ -1,10 +1,23 @@
 <div align="center">
 
-#  Linux: The Foundation of Modern Engineering
+<img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/linux/linux-original.svg" width="120" style="margin-bottom: 20px;">
 
-<img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/linux/linux-original.svg" width="200">
+# Linux
+### The Foundation of Modern Engineering
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![Kernel Version](https://img.shields.io/badge/Kernel-6.x-EBC018.svg?style=flat-square&logo=linux&logoColor=black)](https://kernel.org/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+
+---
+
+**Master the backbone of IT infrastructure. From kernel fundamentals to enterprise-grade automation.**
+
+[Explore Labs](#-getting-started) • [View Modules](#-what-you-will-learn) • [Contribute](#-collaboration)
 
 </div>
+
+<br/>
 
 ##  Why Linux Matters
 Linux is the **backbone of modern IT infrastructure**. It powers almost every technology we interact with today, including:
