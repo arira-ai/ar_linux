@@ -1,11 +1,10 @@
-<center>
+<div align="center">
 
-# **Linux: The Foundation of Modern Engineering**
-</center>
+#  Linux: The Foundation of Modern Engineering
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/linux/linux-original.svg" width="200">
-</p>
+<img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/linux/linux-original.svg" width="200">
+
+</div>
 
 ##  Why Linux Matters
 Linux is the **backbone of modern IT infrastructure**. It powers almost every technology we interact with today, including:
