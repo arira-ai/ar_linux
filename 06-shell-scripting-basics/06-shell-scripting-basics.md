@@ -28,7 +28,7 @@ A shell script is simply a **sequence of Linux commands executed together**.
 
 * Tells the system which interpreter to use
 
-## 3. Script Execution Flow (Mermaid Diagram)
+## 3. Script Execution Flow
 
 ```mermaid
 flowchart TD
