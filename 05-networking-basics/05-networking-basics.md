@@ -40,14 +40,17 @@ flowchart TD
     end
 
     subgraph Network_Layer [Connectivity]
-        B[Internet/Network Interface]
+        B[Internet/
+        Network Interface]
         FW{Firewall}
     end
 
     subgraph Server_Internals [Server Environment]
         C[IP Address & Port]
-        E[Web Server / Reverse Proxy\ne.g., Nginx, Apache]
-        F[Application Logic\ne.g., Python, Node, Go]
+        E[Web Server / Reverse Proxy
+        e.g., Nginx, Apache]
+        F[Application Logic
+        e.g., Python, Node, Go]
         DB[(Database)]
     end
 
