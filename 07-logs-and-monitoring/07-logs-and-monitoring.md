@@ -1,4 +1,4 @@
-# Logs and Monitoring (Linux for DevOps)
+# Logs and Monitoring
 
 ## 1. Introduction
 
