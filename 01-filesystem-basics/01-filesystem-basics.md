@@ -157,11 +157,6 @@ flowchart TD
     U -- "rwx (7)" --> Actions
     G -- "r-x (5)" --> Actions
     O -- "r-- (4)" --> Actions
-
-    %% Visual Styling
-    style U fill:#d4f1f9,stroke:#333
-    style G fill:#d4f1f9,stroke:#333
-    style O fill:#d4f1f9,stroke:#333
 ```
 
 
