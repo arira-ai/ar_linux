@@ -11,7 +11,6 @@ The system does not track files by name. It tracks them using an internal ID cal
 * Soft Links: Shortcuts that point to a filename, allowing for flexible paths across different storage devices.
 
 ```mermaid
-%%{init: { 'theme': 'base', 'themeVariables': { 'primaryColor': '#1e1e2e', 'primaryTextColor': '#ffffff', 'nodeTextColor': '#ffffff', 'lineColor': '#89b4fa', 'background': '#11111b' } } }%%
 flowchart TD
     subgraph Data_Storage [Disk Data Blocks]
         Data["[Actual File Content] <br/> (Binary Data)"]
@@ -111,7 +110,6 @@ Directory layout:
 Deployment model:
 
 ```mermaid
-%%{init: { 'theme': 'base', 'themeVariables': { 'primaryColor': '#1e1e2e', 'primaryTextColor': '#ffffff', 'nodeTextColor': '#ffffff', 'lineColor': '#89b4fa', 'background': '#11111b' } } }%%
 flowchart TD
     linkStyle default interpolate basis
 
@@ -192,7 +190,6 @@ Linux attaches block devices to the directory tree using mount points.
 Example:
 
 ```mermaid
-%%{init: { 'theme': 'base', 'themeVariables': { 'primaryColor': '#1e1e2e', 'primaryTextColor': '#ffffff', 'nodeTextColor': '#ffffff', 'lineColor': '#89b4fa', 'background': '#11111b' } } }%%
 flowchart TD
     Disk1["/dev/sda1 OS"] --> Root["/"]
     Disk2["/dev/sdb1 Storage"] --> Docker["/var/lib/docker"]
@@ -248,7 +245,6 @@ Only the file owner can delete their own files inside that directory.
 Example:
 
 ```mermaid
-%%{init: { 'theme': 'base', 'themeVariables': { 'primaryColor': '#1e1e2e', 'primaryTextColor': '#ffffff', 'nodeTextColor': '#ffffff', 'lineColor': '#89b4fa', 'background': '#11111b' } } }%%
 flowchart TD
     subgraph Shared_Directory ["Shared Folder (e.g., /tmp)"]
         direction TB
@@ -293,7 +289,6 @@ The `s` in owner position indicates SUID.
 Execution flow:
 
 ```mermaid
-%%{init: { 'theme': 'base', 'themeVariables': { 'primaryColor': '#1e1e2e', 'primaryTextColor': '#ffffff', 'nodeTextColor': '#ffffff', 'lineColor': '#89b4fa', 'background': '#11111b' } } }%%
 flowchart LR
     %% Define Nodes
     User([Normal User]) -- "Executes" --> Binary["/usr/bin/passwd <br/> (Permissions: -rwsr-xr-x)"]
