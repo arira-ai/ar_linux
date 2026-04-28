@@ -1,9 +1,67 @@
 # Process and Service Management in Linux
 
-## 1. Introduction: Why This Matters
+## 1. Introduction: 
 
-Linux runs everything through **processes and services**.
-Every web server, database, CI runner, cron job, and monitoring agent is ultimately a **Linux process**.
+* **Application**
+Logical software unit defined by purpose. May consist of multiple processes and services. Not a kernel object.
+
+* **Service**
+Systemd-managed unit that runs an application component in the background. Has defined lifecycle, dependencies, and restart behavior.
+
+* **Process**
+Running instance of a program managed by the Linux kernel. Identified by PID, scheduled for CPU, exists only during execution.
+
+* **systemd**
+Init system (PID 1) that boots the system and manages services, their dependencies, execution, and monitoring.
+
+* **systemctl**
+Command-line interface used to send control instructions to systemd (start, stop, status, enable).
+
+
+
+```mermaid
+flowchart LR
+ 
+
+    U([👤 User]):::user
+
+    subgraph UserSpace ["🖥️ User Space Tools"]
+        direction TB
+        SC(["systemctl"]):::cli
+        JC(["journalctl"]):::cli
+    end
+
+    subgraph SystemdCore ["⚙️ systemd Ecosystem"]
+        direction TB
+        SD{"systemd (PID 1)"}:::core
+        L[("Logs Journal")]:::db
+    end
+
+    subgraph Execution ["🚀 Execution & OS Level"]
+        direction TB
+        A[/"Application (Logical)"/]:::logic
+        S["Service Unit"]:::exec
+        P[["Processes"]]:::exec
+        K{{"Linux Kernel"}}:::exec
+    end
+
+    %% Edge Connections & Labels
+    U -->|Issues commands| SC
+    U -->|Reads logs| JC
+
+    SC -->|Controls state via D-Bus| SD
+    JC -.->|Queries API| SD
+    L -->|Feeds log data| JC
+
+    A -.->|Defined by| S
+
+    SD -->|Starts & Stops| S
+    S -->|Spawns| P
+    P -->|Executes on| K
+
+    SD -->|Logs daemon state| L
+    P -.->|Captures stdout/stderr| L
+```
 
 For DevOps engineers, mastering this topic means:
 
@@ -106,55 +164,6 @@ flowchart TD
     L --> M[Consumes CPU / Memory]
 ```
 
-```mermaid
-graph TD
-    %% Main Concept
-    SD["systemd (PID 1)"]
-    SD --- Role["System Supervisor"]
-    
-    %% Section 1: Core Responsibilities
-    subgraph Tasks ["Core Functions"]
-        T1["Boot Management"]
-        T2["Process Tracking (Re-parenting)"]
-        T3["Log Management (journald)"]
-    end
-    SD --> Tasks
-
-    %% Section 2: Unit Types
-    subgraph Units ["Common Unit Types (.unit)"]
-        U1["<b>.service</b><br/>Applications/Daemons"]
-        U2["<b>.target</b><br/>Groups (Runlevels)"]
-        U3["<b>.mount</b><br/>Storage/Partitions"]
-        U4["<b>.socket</b><br/>IPC/Networking"]
-    end
-    SD --> Units
-
-    %% Section 3: File Locations & Priority
-    subgraph Paths ["File Locations (Priority Low to High)"]
-        P1["/lib/systemd/system/<br/>(OS Defaults)"]
-        P2["/usr/lib/systemd/system/<br/>(Installed Apps)"]
-        P3["/etc/systemd/system/<br/>(Custom Overrides)"]
-    end
-    Units --> Paths
-    style P3 fill:#f9f,stroke:#333,stroke-width:2px
-
-    %% Section 4: Anatomy of a Service
-    subgraph Anatomy ["Service File Sections"]
-        S1["<b>[Unit]</b><br/>Description & Metadata"]
-        S2["<b>[Service]</b><br/>ExecStart & Process Type"]
-        S3["<b>[Install]</b><br/>Boot Triggers (WantedBy)"]
-    end
-    P3 -.-> Anatomy
-
-    %% Section 5: Commands
-    subgraph CMD ["Common Commands"]
-        C1["systemctl daemon-reload"]
-        C2["systemctl restart"]
-        C3["systemctl status"]
-    end
-    Anatomy --> CMD
-```
-
 ---
 
 ## 6. Essential Commands (Daily Linux Ops)
@@ -230,7 +239,7 @@ systemctl start nginx
 ## 10. journalctl: Centralized Logging Explained
 
 ```mermaid
-flowchart TD
+flowchart LR
     A[Service Runs]
     A --> B[Logs Generated]
     B --> C[journald]
@@ -251,7 +260,7 @@ journalctl --since "10 minutes ago"
 ## 11. kill Command & Signal Handling (Critical Concept)
 
 ```mermaid
-flowchart TD
+flowchart LR
     A[Admin / Script]
     A --> B[kill Signal]
     B --> C{Signal Type}
@@ -346,7 +355,7 @@ systemctl enable myapp
 ## 15. Self-Healing at Linux Level (Auto-Restart)
 
 ```mermaid
-flowchart TD
+flowchart LR
     A[Service Running]
     A --> B[Process Crash]
     B --> C[systemd Detects Failure]
@@ -383,7 +392,7 @@ systemctl restart app
 
 ---
 
-## 18. Why Linux Skills Matter (Beginner Motivation)
+## 18. Why Linux Skills Matter
 
 Linux is the **foundation of all modern technology**:
 
