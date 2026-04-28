@@ -296,8 +296,9 @@ systemctl status nginx
 
 ### Definitions
 
-* **Zombie:** Process finished, parent didn’t collect status
-* **Orphan:** Parent died, child still running
+* **Zombie:** The child is dead, but the parent is still alive and ignoring it. (Requires you to kill the parent or restart the service to clean it up).
+
+* **Orphan:** The parent is dead, but the child is still actively running and doing work. (Harmless, as systemd adopts it and manages it perfectly).
 
 ### Identify Zombies
 
