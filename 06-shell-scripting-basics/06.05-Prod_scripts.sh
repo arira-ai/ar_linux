@@ -1,0 +1,232 @@
+The production-grade standard scripts must ensure they are resilient, self-documenting, and fail gracefully. 
+
+Every script below will utilize a standard enterprise boilerplate. This includes:
+
+*   `set -euo pipefail`: 
+
+    Prevents silent failures, catches unbound variables, and ensures failures inside pipes are caught.
+*   **Structured Logging:** 
+
+    Standardized output formats (`[INFO]`, `[ERROR]`) with ISO 8601 timestamps so log aggregators (like Datadog or Splunk) can easily ingest them.
+*   **Dependency Checks:** 
+
+    The script verifies required tools exist before running.
+
+Here are the four scripts, followed by the `cron` configuration to automate them.
+
+---
+
+### 1. Log Archiver & Zipper
+In production, you usually use `logrotate` for this, but building a custom archiver is a great way to handle application-specific log dumps.
+
+**File:** `/usr/local/bin/log_archiver.sh`
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Configuration
+LOG_DIR="/var/log/myapp"
+ARCHIVE_DIR="${LOG_DIR}/archive"
+DAYS_TO_KEEP=7
+
+# Logging setup
+log_info() { echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ') [INFO] $*"; }
+log_err() { echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ') [ERROR] $*" >&2; }
+
+# Trap for unexpected exits
+trap 'log_err "Script interrupted or failed at line $LINENO"' ERR
+
+main() {
+    log_info "Starting log archival for ${LOG_DIR}..."
+
+    # Ensure directories exist
+    mkdir -p "${ARCHIVE_DIR}"
+
+    # Find .log files older than DAYS_TO_KEEP, gzip them, and move them
+    # Using find with -exec is safer for handling files with spaces in their names
+    find "${LOG_DIR}" -maxdepth 1 -type f -name "*.log" -mtime +"${DAYS_TO_KEEP}" -print0 | while IFS= read -r -d '' file; do
+        log_info "Compressing and archiving: ${file}"
+        gzip -c "${file}" > "${ARCHIVE_DIR}/$(basename "${file}").gz"
+        rm "${file}" # Remove original only if gzip succeeds (due to set -e)
+    done
+
+    log_info "Log archival completed successfully."
+}
+
+main
+```
+
+### 2. CPU & Memory Analyzer with Alerting
+This script calculates the current Memory percentage and the 1-minute CPU load average. If thresholds are breached, it triggers an "alert" (in this case, logging an ERROR, which in a real environment would be caught by a monitor or sent via a Slack webhook).
+
+**File:** `/usr/local/bin/sys_monitor.sh`
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Configuration
+MEM_THRESHOLD=85 # Percentage
+LOAD_THRESHOLD=2.0 # CPU Load average
+
+log_info() { echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ') [INFO] $*"; }
+log_alert() { echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ') [ALERT] $*" >&2; }
+
+# Simulated webhook function (Replace echo with actual curl command to Slack/Teams)
+send_webhook() {
+    local message="$1"
+    # curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"${message}\"}" $WEBHOOK_URL
+    log_alert "WEBHOOK FIRED: ${message}"
+}
+
+main() {
+    # Calculate Memory
+    local mem_total
+    local mem_used
+    local mem_pct
+    
+    mem_total=$(free | awk '/Mem:/ {print $2}')
+    mem_used=$(free | awk '/Mem:/ {print $3}')
+    mem_pct=$(( 100 * mem_used / mem_total ))
+
+    # Calculate CPU Load (1-minute average)
+    local cpu_load
+    cpu_load=$(uptime | awk -F'load average:' '{ print $2 }' | cut -d, -f1 | xargs)
+
+    log_info "System Status - Memory: ${mem_pct}% | CPU Load: ${cpu_load}"
+
+    # Alerting Logic
+    if [ "${mem_pct}" -ge "${MEM_THRESHOLD}" ]; then
+        send_webhook "CRITICAL: Memory usage is at ${mem_pct}% (Threshold: ${MEM_THRESHOLD}%)"
+    fi
+
+    # Using bc for floating point comparison since bash only handles integers natively
+    if echo "${cpu_load} >= ${LOAD_THRESHOLD}" | bc -l | grep -q 1; then
+        send_webhook "CRITICAL: CPU Load is at ${cpu_load} (Threshold: ${LOAD_THRESHOLD})"
+    fi
+}
+
+# Check for bc dependency before running
+command -v bc >/dev/null 2>&1 || { log_alert "bc is required but not installed. Aborting."; exit 1; }
+main
+```
+
+### 3. Network Issue Analyzer
+When someone asks "What happens when I hit google.com?", this script breaks down the exact DNS lookup time, connection time, and Time-to-First-Byte (TTFB).
+
+**File:** `/usr/local/bin/net_trace.sh`
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+TARGET="${1:-google.com}" # Defaults to google.com if no argument is provided
+
+log_info() { echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ') [INFO] $*"; }
+log_err() { echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ') [ERROR] $*" >&2; }
+
+main() {
+    log_info "Analyzing network path to ${TARGET}..."
+
+    # 1. DNS Resolution check
+    log_info "Step 1: DNS Resolution"
+    if command -v dig >/dev/null 2>&1; then
+        dig +short "${TARGET}" | while read -r ip; do log_info "Resolved IP: ${ip}"; done
+    else
+        log_err "'dig' not found, skipping DNS deep dive."
+    fi
+
+    # 2. HTTP/TCP Latency Breakdown using curl
+    log_info "Step 2: HTTP Connection Metrics"
+    
+    local curl_format="
+    DNS Lookup   : %{time_namelookup} seconds
+    TCP Connect  : %{time_connect} seconds
+    TLS Setup    : %{time_appconnect} seconds
+    TTFB         : %{time_starttransfer} seconds
+    Total Time   : %{time_total} seconds\n"
+
+    curl -o /dev/null -s -w "${curl_format}" "https://${TARGET}" || log_err "Failed to connect to ${TARGET}"
+}
+
+main
+```
+
+### 4. Smart Folder Management (Dead Weight Recommender)
+This script checks if the root disk is over a certain capacity. If it is, it finds the top 10 largest folders and files that haven't been accessed in over 30 days to recommend for deletion.
+
+**File:** `/usr/local/bin/disk_recommender.sh`
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+DISK_THRESHOLD=80 # Percentage
+TARGET_DIR="/var" # Directory to scan if threshold is breached
+
+log_info() { echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ') [INFO] $*"; }
+log_warn() { echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ') [WARN] $*" >&2; }
+
+main() {
+    # Get root partition usage percentage (remove the % sign for integer comparison)
+    local disk_usage
+    disk_usage=$(df -h / | awk 'NR==2 {print $5}' | sed 's/%//')
+
+    log_info "Current root disk usage is at ${disk_usage}%"
+
+    if [ "${disk_usage}" -ge "${DISK_THRESHOLD}" ]; then
+        log_warn "Disk usage (${disk_usage}%) exceeds threshold (${DISK_THRESHOLD}%). Generating cleanup recommendations..."
+        
+        echo "---------------------------------------------------"
+        echo "TOP 10 LARGEST DIRECTORIES IN ${TARGET_DIR}:"
+        echo "---------------------------------------------------"
+        # du -a (all files/folders), -h (human readable), sort -rh (reverse human readable sort)
+        sudo du -ah "${TARGET_DIR}" 2>/dev/null | sort -rh | head -n 10
+
+        echo ""
+        echo "---------------------------------------------------"
+        echo "DEAD WEIGHT FILES (Not accessed in 30+ days) > 50MB:"
+        echo "---------------------------------------------------"
+        # Find files larger than 50M not accessed in 30 days
+        sudo find "${TARGET_DIR}" -type f -atime +30 -size +50M -exec ls -lh {} \; | awk '{ print $5, $9 }'
+        echo "---------------------------------------------------"
+    else
+        log_info "Disk usage is healthy. No action required."
+    fi
+}
+
+main
+```
+
+---
+
+### How to Schedule via Cron Job
+
+First, make all your scripts executable:
+```bash
+chmod +x /usr/local/bin/log_archiver.sh
+chmod +x /usr/local/bin/sys_monitor.sh
+chmod +x /usr/local/bin/net_trace.sh
+chmod +x /usr/local/bin/disk_recommender.sh
+```
+
+Next, open the system crontab. Since the disk analyzer and log archiver need permissions to read `/var/log` and use `sudo`, you should edit the root user's crontab:
+```bash
+sudo crontab -e
+```
+
+Add the following lines. We will pipe the output of these cron jobs to a centralized automation log so you don't lose the stdout/stderr:
+
+```cron
+# Set PATH so cron knows where tools like bc, curl, and dig are
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# 1. Run Log Archiver daily at 2:00 AM
+0 2 * * * /usr/local/bin/log_archiver.sh >> /var/log/automation_scripts.log 2>&1
+
+# 2. Run System Monitor every 5 minutes
+*/5 * * * * /usr/local/bin/sys_monitor.sh >> /var/log/automation_scripts.log 2>&1
+
+# 3. Run Network Analyzer daily at 6:00 AM (or on-demand, cron usually isn't needed for this unless monitoring uptime)
+0 6 * * * /usr/local/bin/net_trace.sh google.com >> /var/log/automation_scripts.log 2>&1
+
+# 4. Run Disk Recommender every Sunday at 3:00 AM
+0 3 * * 0 /usr/local/bin/disk_recommender.sh >> /var/log/automation_scripts.log 2>&1
+```
